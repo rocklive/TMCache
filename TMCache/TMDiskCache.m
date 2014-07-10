@@ -328,8 +328,13 @@ NSString * const TMDiskCacheSharedName = @"TMDiskCacheShared";
         id <NSCoding> object = nil;
 
         if ([[NSFileManager defaultManager] fileExistsAtPath:[fileURL path]]) {
-            object = [NSKeyedUnarchiver unarchiveObjectWithFile:[fileURL path]];
-            [strongSelf setFileModificationDate:now forURL:fileURL];
+            @try {
+                object = [NSKeyedUnarchiver unarchiveObjectWithFile:[fileURL path]];
+                [strongSelf setFileModificationDate:now forURL:fileURL];
+            } @catch (NSException *e) {
+                [self removeObjectForKey:key];
+                object = nil;
+            }
         }
 
         block(strongSelf, key, object, fileURL);
