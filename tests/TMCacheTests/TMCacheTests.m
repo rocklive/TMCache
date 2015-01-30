@@ -326,4 +326,32 @@ NSTimeInterval TMCacheTestBlockTimeout = 5.0;
     STAssertTrue(objectCount == enumCount, @"some objects were not enumerated");
 }
 
+- (void) testDoubleWrite{
+    NSString* key = @"key";
+    
+    NSString* testString1 = @"Test 1";
+    NSString* testString2 = @"Test 2";
+    
+    dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+    
+    [self.cache.memoryCache setObject:testString1
+                               forKey:key
+                             withCost:100
+                                block:^(TMMemoryCache *cache, NSString *key, id object) {
+                                    dispatch_semaphore_signal(semaphore);
+                                }];
+    
+    [self.cache.memoryCache setObject:testString2
+                               forKey:key
+                             withCost:100
+                                block:^(TMMemoryCache *cache, NSString *key, id object) {
+                                    dispatch_semaphore_signal(semaphore);
+                                }];
+
+    dispatch_semaphore_wait(semaphore, [self timeout]);
+    dispatch_semaphore_wait(semaphore, [self timeout]);
+ 
+    STAssertTrue(self.cache.memoryCache.totalCost == 100, @"Double write failed");
+}
+
 @end

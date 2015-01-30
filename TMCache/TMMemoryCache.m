@@ -130,8 +130,7 @@ NSString * const TMMemoryCachePrefix = @"com.tumblr.TMMemoryCache";
     #endif
 }
 
-- (void)removeObjectAndExecuteBlocksForKey:(NSString *)key
-{
+- (void)removeObjectWithoutCallingBlocksForKey:(NSString *)key{
     id object = [_dictionary objectForKey:key];
     NSNumber *cost = [_costs objectForKey:key];
 
@@ -142,8 +141,16 @@ NSString * const TMMemoryCachePrefix = @"com.tumblr.TMMemoryCache";
         _totalCost -= [cost unsignedIntegerValue];
 
     [_dictionary removeObjectForKey:key];
-    [_dates removeObjectForKey:key];
-    [_costs removeObjectForKey:key];
+    [_dates      removeObjectForKey:key];
+    [_costs      removeObjectForKey:key];
+}
+
+- (void)removeObjectAndExecuteBlocksForKey:(NSString *)key
+{
+    if ([_dictionary objectForKey:key] == nil)
+        return;
+    
+    [self removeObjectWithoutCallingBlocksForKey:key];
 
     if (_didRemoveObjectBlock)
         _didRemoveObjectBlock(self, key, nil);
@@ -273,6 +280,10 @@ NSString * const TMMemoryCachePrefix = @"com.tumblr.TMMemoryCache";
 
         if (strongSelf->_willAddObjectBlock)
             strongSelf->_willAddObjectBlock(strongSelf, key, object);
+
+        if([strongSelf->_dictionary objectForKey:key] != nil){
+            [self removeObjectWithoutCallingBlocksForKey:key];
+        }
 
         [strongSelf->_dictionary setObject:object forKey:key];
         [strongSelf->_dates setObject:now forKey:key];
